@@ -5,35 +5,32 @@ import { Button } from "../../../components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "../../../components/ui/sheet";
 import { LogIn, Menu  } from "lucide-react";
 import Link from "next/link";
-import Dashboard from './../../(panel)/dashboard/page';
 import { useSession } from 'next-auth/react';
-import { handleRegister } from '../_actions/login';
+import type { Session } from "next-auth";
 
-export function  Header() {
+const navItems = [
+    {href: "#profissionais", label: "Profissionais"},
+]
 
-    const {data:session, status} = useSession()
-
-    const [isOpen, setIsOpen] = useState(false);
-
-    async function handleLogin() {
-        await handleRegister("github")
-        
-    }
-
-    const NavItems = [
-        {href: "#profissionais", label: "Profissionais"},
-    ]
-
-    const NavLinks = () => (
+function NavLinks({
+    status,
+    session,
+    onNavigate,
+}: {
+    status: "loading" | "authenticated" | "unauthenticated",
+    session: Session | null,
+    onNavigate?: () => void,
+}) {
+    return (
         <>
-            {NavItems.map((item) => (
-                <Button 
-                    onClick={() => setIsOpen(false)}
+            {navItems.map((item) => (
+                <Button
+                    onClick={() => onNavigate?.()}
                     key={item.href}
                     asChild
                     className="bg-transparent hover:bg-transparent text-black shadow-none"
                 >
-                    <Link 
+                    <Link
                         className='text-base'
                         href={item.href}
                     >
@@ -46,20 +43,32 @@ export function  Header() {
             {status === 'loading' ? (
                 <></>
             ) : session ? (
-                <Link 
+                <Link
                     className='flex items-center justify-center gap-2 bg-zinc-900 text-white py-1 rounded-md px-4'
                     href="/dashboard"
                 >
                     Painel da Clinica
                 </Link>
             ): (
-                <Button onClick={handleLogin}>
-                    <LogIn/>
-                    Fazer Login
+                <Button asChild className='cursor-pointer hover:bg-zinc-700'>
+                    <Link
+                        className="flex items-center gap-2"
+                        href="/login"
+                    >
+                        <LogIn />
+                        Fazer Login
+                    </Link>
                 </Button>
             )}
         </>
     )
+}
+
+export function  Header() {
+
+    const {data:session, status} = useSession()
+
+    const [isOpen, setIsOpen] = useState(false);
 
     return(
         <header className="fixed top-0 right-0 left-0 z-999 py-4 px-6 bg-white ">
@@ -74,7 +83,7 @@ export function  Header() {
                 </Link>
 
                 <nav className="hidden md:flex items-center space-x-4">
-                    <NavLinks />
+                    <NavLinks status={status} session={session} onNavigate={() => setIsOpen(false)} />
                 </nav>
 
                 <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -96,7 +105,7 @@ export function  Header() {
                         </SheetDescription>
 
                         <nav className='flex flex-col space-y-4 mt-6'>
-                            <NavLinks />
+                            <NavLinks status={status} session={session} onNavigate={() => setIsOpen(false)} />
                         </nav>
 
                     </SheetContent>

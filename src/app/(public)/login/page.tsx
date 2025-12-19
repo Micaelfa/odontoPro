@@ -23,7 +23,7 @@ export default function LoginPage() {
                                     <input type="hidden" name="provider" value="google" />
                                     <Button
                                         type="submit"
-                                        className="w-full bg-white text-gray-800 border hover:bg-gray-100"
+                                        className="w-full bg-white text-gray-800 border hover:bg-gray-100 cursor-pointer"
                                     >
                                         <Chrome className="h-5 w-5 mr-2" />
                                         Entrar com Google
@@ -34,7 +34,7 @@ export default function LoginPage() {
                                     <input type="hidden" name="provider" value="github" />
                                     <Button
                                         type="submit"
-                                        className="w-full bg-zinc-900 text-white hover:bg-zinc-800"
+                                        className="w-full bg-zinc-900 text-white hover:bg-zinc-800 cursor-pointer"
                                     >
                                         <Github className="h-5 w-5 mr-2" />
                                         Entrar com Github
@@ -44,7 +44,7 @@ export default function LoginPage() {
 
                             <div className="relative text-center text-sm text-gray-500">
                                 <span className="px-3 bg-gray-50 relative z-10">ou continue com seu email</span>
-                                <div className="absolute left-0 top-1/2 w-full border-t border-gray-200 -z-0" />
+                                <div className="absolute left-0 top-1/2 w-full border-t border-gray-200" />
                             </div>
 
                             <form action={handleCredentialsLogin} className="space-y-4">
@@ -59,7 +59,7 @@ export default function LoginPage() {
                                             name="email"
                                             type="email"
                                             required
-                                            placeholder="seuemail@exemplo.com"
+                                            placeholder="Seu E-mail"
                                             className="w-full border-0 p-0 focus-visible:outline-none"
                                         />
                                     </div>

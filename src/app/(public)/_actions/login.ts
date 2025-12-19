@@ -2,15 +2,21 @@
 
 import { signIn } from "@/src/lib/auth"
 
-export async function handleRegister(provider:string) {
-    await signIn(provider,{redirectTo: "/dashboard"})
+type OAuthProvider = "google" | "github"
+
+function isOAuthProvider(value: FormDataEntryValue | null): value is OAuthProvider {
+    return value === "google" || value === "github"
+}
+
+export async function handleRegister(provider: OAuthProvider) {
+    await signIn(provider, { redirectTo: "/dashboard" })
 
 }
 
 export async function handleProviderLogin(formData: FormData) {
     const provider = formData.get("provider")
 
-    if (typeof provider !== "string") return
+    if (!isOAuthProvider(provider)) return
 
     await signIn(provider, { redirectTo: "/dashboard" })
 }

@@ -45,7 +45,7 @@ function NavLinks({
             ) : session ? (
                 <Link
                     className='flex items-center justify-center gap-2 bg-zinc-900 text-white py-1 rounded-md px-4'
-                    href="/dashboard"
+                    href="/login"
                 >
                     Painel da Clinica
                 </Link>

@@ -28,12 +28,36 @@ import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from '@/src/lib/utils';
 import {ProfileFormData} from "@/src/app/(panel)/dashboard/profile/_components/profile.form"
-export default function ProfileContent() {
+import { Prisma } from "@/src/generated/prisma/client";
+import {updateProfile} from "../_actions/update-profile"
+import { toast } from "sonner";
+import {formatPhone} from "@/src/utils/formatedPhone"
+import { signOut, useSession} from "next-auth/react"
+import { useRouter } from "next/navigation"
 
-  const [selectedHours, setSelectedHours] = useState<string[]>([])
+type UserWithSubscription = Prisma.UserGetPayload<{
+  include: {
+    subscription: true
+  }
+}>
+interface ProfileContentProps{
+  user: UserWithSubscription
+}
+
+export default function ProfileContent({user} : ProfileContentProps) {
+
+  const router = useRouter();
+  const [selectedHours, setSelectedHours] = useState<string[]>(user.times ?? [])
   const [dialogIsOpen, setDialogIsOpen] = useState(false)
+  const {update} = useSession()
 
-  const form = useProfileForm();
+  const form = useProfileForm({
+    name: user.name,
+    address: user.address,
+    phone: user.phone,
+    status: user.status,
+    timeZone: user.timezone
+  });
 
   const timeZones = Intl.supportedValuesOf("timeZone").filter((zone) => 
     zone.startsWith("America/Sao_Paulo") ||
@@ -68,11 +92,27 @@ export default function ProfileContent() {
 
   async function onSubit(values: ProfileFormData) {
     
-    const profileData= {
-      ...values,
-      times: selectedHours
+    const response = await updateProfile({
+      name: values.name,
+      address: values.address,
+      phone: values.phone,
+      status: values.status === "active" ? true : false,
+      timeZone:values.timeZone,
+      times: selectedHours || []
+    })
+
+    if (response.error) {
+      toast.error(response.error)
+      return;
     }
     
+      toast.success(response.data)
+  }
+
+  async function handleLogout(){
+    await signOut();
+    await update();
+    router.replace("/")
   }
 
   return (
@@ -92,7 +132,7 @@ export default function ProfileContent() {
                 <div className="flex justify-center">
                   <div className="relative h-40 w-40 rounded-full overflow-hidden">
                     <Image
-                      src={ImgTeste}
+                      src={user.image ? user.image : ImgTeste}
                       alt="Foto da clínica"
                       fill
                       className="object-cover"
@@ -151,6 +191,10 @@ export default function ProfileContent() {
                           <Input
                             {...field}
                             placeholder="Digite o telefone da clínica..."
+                            onChange={(e) => {
+                              const formattedValue = formatPhone(e.target.value)
+                              field.onChange(formattedValue)
+                            }}
                           />
                         </FormControl>
                         <FormMessage/>
@@ -268,11 +312,22 @@ export default function ProfileContent() {
                   <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400">
                     Salvar alterações
                   </Button>
+
                 </div>
               </CardContent>
             </Card>
           </form>
         </Form>
+
+      <section className="mt-4">
+        <Button
+          variant="destructive"
+          onClick={handleLogout}
+          className="cursor-pointer"
+        >
+          Sair da conta
+        </Button>
+      </section>
       </div>
     </div>
   );

@@ -63,7 +63,6 @@ const fetchBlockedTimes = useCallback(
           );
 
           if (!response.ok) {
-            console.log("get-appointments not ok:", response.status);
             return [];
           }
 
@@ -82,11 +81,9 @@ const fetchBlockedTimes = useCallback(
             .map(normalizeTime);
 
           // DEBUG (tira depois):
-          console.log("blockedTimes", dateString, blocked);
 
           return blocked;
         } catch (err) {
-          console.log(err);
           return [];
         } finally {
           setLoadingSlots(false);
@@ -242,6 +239,7 @@ const fetchBlockedTimes = useCallback(
                       onChange={(date) => {
                         if (date) {
                           field.onChange(date);
+                          setSelectedTime("");
                         }
                       }}
                     />
@@ -257,7 +255,10 @@ const fetchBlockedTimes = useCallback(
                 <FormItem className="">
                   <FormLabel className="font-semibold">Serviço:</FormLabel>
                   <FormControl>
-                    <Select onValueChange={field.onChange}>
+                    <Select onValueChange={(value) => {
+                      field.onChange(value)
+                      setSelectedTime("")
+                    }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecionar um serviço" />
                       </SelectTrigger>

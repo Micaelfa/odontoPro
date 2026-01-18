@@ -4,6 +4,7 @@ import { Button } from "@/src/components/ui/button";
 import { TimeSlot } from "./schedule-content";
 import { cn } from "@/src/lib/utils";
 import { isSlotInThePast, isSlotSequenceAvaliable, isToday } from "./schedule-utils";
+import { toast } from "sonner";
 
 interface ScheduleTimeListProps {
   selectedDate: Date;
@@ -26,10 +27,7 @@ export function ScheduleTimeList({
 }: ScheduleTimeListProps) {
   const dateIsToday = isToday(selectedDate);
 
-  // ✅ normaliza pra evitar mismatch tipo "08:00:00" vs "08:00"
   const normalizeTime = (t: string) => (t ?? "").trim().slice(0, 5);
-
-  // ✅ cria Set pra checagem rápida e confiável
   const blockedSet = new Set(blockedTimes.map(normalizeTime));
 
   return (
@@ -37,13 +35,9 @@ export function ScheduleTimeList({
       {availableTimeSlots.map((slot) => {
         const slotTime = normalizeTime(slot.time);
 
-        // ✅ 1) bloqueado se estiver no array de blockedTimes
         const isBlocked = blockedSet.has(slotTime);
-
-        // ✅ 2) se hoje e passou do horário, bloqueia
         const slotIsPast = dateIsToday && isSlotInThePast(slotTime);
 
-        // ✅ 3) valida sequência (ex: duração maior que 1 slot)
         const sequenceOk = isSlotSequenceAvaliable(
           slotTime,
           requiredSlots,
@@ -51,12 +45,35 @@ export function ScheduleTimeList({
           Array.from(blockedSet)
         );
 
-        // ✅ slotEnabled final (o que realmente manda)
         const slotEnabled = slot.available && sequenceOk && !isBlocked && !slotIsPast;
+
+        function handleClick() {
+          if (slotEnabled) {
+            onSelectTime(slotTime);
+            return;
+          }
+
+          if (isBlocked) {
+            toast.error("Esse horário já está agendado. Escolha outro.");
+            return;
+          }
+
+          if (slotIsPast) {
+            toast.error("Esse horário já passou. Escolha outro.");
+            return;
+          }
+
+          if (!sequenceOk) {
+            toast.error("Esse horário não comporta a duração do serviço.");
+            return;
+          }
+
+          toast.error("Horário indisponível.");
+        }
 
         return (
           <Button
-            onClick={() => slotEnabled && onSelectTime(slotTime)}
+            onClick={handleClick}
             type="button"
             variant="outline"
             key={slot.time}
@@ -64,9 +81,9 @@ export function ScheduleTimeList({
               "h-10 select-none",
               selectedTime === slotTime && "border-2 border-emerald-500 text-primary",
               !slotEnabled && "opacity-50 cursor-not-allowed",
-              isBlocked && "line-through" // ✅ visual: risca bloqueados
+              isBlocked && "line-through"
             )}
-            disabled={!slotEnabled}
+            // ⚠️ não usar disabled aqui, senão não captura click e não mostra toast
             title={
               isBlocked
                 ? "Horário já agendado"

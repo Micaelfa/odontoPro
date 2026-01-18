@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(blockedtimes)
 
     }catch(err) {
-        console.log(err);
         return NextResponse.json({
             error: "Nenhum agendamento encontrado"
         }, {

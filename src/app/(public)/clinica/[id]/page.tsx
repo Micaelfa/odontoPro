@@ -11,7 +11,6 @@ export default async function SchedulePage({params,}: {params: Promise<{id: stri
         redirect("/")
     }
 
-    console.log(user)
     return(
         <ScheduleContent clinic={user}/>
     )

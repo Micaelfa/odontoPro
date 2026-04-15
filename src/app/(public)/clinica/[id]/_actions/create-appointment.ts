@@ -39,7 +39,7 @@ export async function createNewAppointment(formData: FormSchema) {
             data: {
                 name: formData.name,
                 email: formData.email,
-                Phone: formData.phone,
+                phone: formData.phone,
                 time: formData.time,
                 appointmentDate: appointmentDate,
                 serviceId: formData.serviceId,

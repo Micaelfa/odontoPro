@@ -226,7 +226,7 @@ function SidebarLink({href, icon, label, pathname, isCollapsed} : SidebarLinkPro
         return(
             <Link href={href}>
                 <div className={clsx("flex items-center gap-2  px-3 py-2 rounded-md  transition-color ", {
-                    "text-white bg-blue-400 hover:text-black " : pathname === href,
+                    "text-white bg-emerald-500 hover:text-black " : pathname === href,
                     "text-gray-700 hover:bg-gray-100" : pathname === href,
                     })}
                 >

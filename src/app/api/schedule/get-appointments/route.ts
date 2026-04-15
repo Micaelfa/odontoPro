@@ -23,6 +23,11 @@ export async function GET(request: NextRequest) {
         const startDate = new Date(year, month - 1, day, 0, 0, 0)
         const endDate = new Date(year, month - 1, day, 23, 59, 59, 999)
 
+        // evita erro quando a data vem fora do formato esperado
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+            return NextResponse.json([])
+        }
+
         const user = await prisma.user.findFirst({
             where:{
                 id: userId
@@ -69,12 +74,9 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(blockedtimes)
 
-    }catch(err) {
-        return NextResponse.json({
-            error: "Nenhum agendamento encontrado"
-        }, {
-            status: 400
-        })
+    }catch {
+        // quando houver falha inesperada, devolve lista vazia para não quebrar o agendamento
+        return NextResponse.json([])
     }
 
     

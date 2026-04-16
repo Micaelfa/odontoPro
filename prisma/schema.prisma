@@ -41,7 +41,7 @@ model Appointment {
   id              String   @id @default(uuid())
   name            String
   email           String
-  Phone           String
+  phone           String   @map("Phone")
   appointmentDate DateTime //Data do agendamento
   time            String //horario escolhido
 

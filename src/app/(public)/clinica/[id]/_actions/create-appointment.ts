@@ -1,17 +1,18 @@
 "use server"
 
 import prisma from "@/src/lib/prisma";
+import { revalidatePath } from "next/cache";
 import z from "zod";
 
 
 const formSchema = z.object({
-    name:z.string().min(1, "O nome é obrigatório"),
-    email:z.string().email("O email é obrigatório"),
-    phone:z.string().min(1, "O telefone é obrigatório"),
-    date:z.date(),
-    serviceId:z.string().min(1, "O serviço é obrigatorio é obrigatório"),
-    time:z.string().min(1, "O horário é obrigatório"),
-    clinicId:z.string().min(1, "O horário é obrigatório"),
+    name:z.string().trim().min(1, "O nome é obrigatório"),
+    email:z.string().trim().email("O email é obrigatório"),
+    phone:z.string().trim().min(1, "O telefone é obrigatório"),
+    date:z.coerce.date(),
+    serviceId:z.string().trim().min(1, "O serviço é obrigatorio é obrigatório"),
+    time:z.string().trim().min(1, "O horário é obrigatório"),
+    clinicId:z.string().trim().min(1, "O horário é obrigatório"),
 })
 
 type FormSchema = z.infer<typeof formSchema>
@@ -27,7 +28,7 @@ export async function createNewAppointment(formData: FormSchema) {
 
     try{
 
-        const selectedDate = new Date(formData.date)
+        const selectedDate = new Date(schema.data.date)
 
         const year = selectedDate.getFullYear();
         const month = selectedDate.getMonth();
@@ -37,24 +38,26 @@ export async function createNewAppointment(formData: FormSchema) {
 
         const newAppointment = await prisma.appointment.create({
             data: {
-                name: formData.name,
-                email: formData.email,
-                Phone: formData.phone,
-                time: formData.time,
+                name: schema.data.name,
+                email: schema.data.email,
+                phone: schema.data.phone,
+                time: schema.data.time,
                 appointmentDate: appointmentDate,
-                serviceId: formData.serviceId,
-                userId: formData.clinicId
+                serviceId: schema.data.serviceId,
+                userId: schema.data.clinicId
 
             }
         })
+
+        revalidatePath(`/clinica/${schema.data.clinicId}`)
 
         return{
             data: newAppointment
         }
 
-    }catch(err){
+    }catch(error){
         return {
-            error: "Erro ao cadastrar agendamento"
+            error: error instanceof Error ? error.message : "Erro ao cadastrar agendamento"
         }
     }
 }

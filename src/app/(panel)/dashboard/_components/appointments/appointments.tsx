@@ -10,3 +10,4 @@ export async function Appointments({userId} : {userId: string}) {
         <AppointmentsList times={times}/>
     )
 }
+

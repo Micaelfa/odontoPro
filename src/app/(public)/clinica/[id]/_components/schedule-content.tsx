@@ -5,11 +5,23 @@ import ImgTeste from "@/public/foto1.png";
 import { MapPin } from "lucide-react";
 import { Prisma } from "@/src/generated/prisma/client";
 import { AppointmentFormData, useAppointmentForm } from "./schedule-form";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/src/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/src/components/ui/form";
 import { Input } from "@/src/components/ui/input";
 import { formatPhone } from "@/src/utils/formatedPhone";
 import { DateTimePicker } from "./date-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/src/components/ui/select";
 import { Button } from "@/src/components/ui/button";
 import { useCallback, useEffect, useState } from "react";
 import { Label } from "@/src/components/ui/label";
@@ -17,7 +29,7 @@ import { ScheduleTimeList } from "./schedule-time-list";
 import { createNewAppointment } from "../_actions/create-appointment";
 import { toast } from "sonner";
 
-type userWithServiceAndSubscription = Prisma.UserGetPayload<{
+type UserWithServiceAndSubscription = Prisma.UserGetPayload<{
   include: {
     subscription: true;
     services: true;
@@ -25,12 +37,34 @@ type userWithServiceAndSubscription = Prisma.UserGetPayload<{
 }>;
 
 interface ScheduleContentProps {
-  clinic: userWithServiceAndSubscription;
+  clinic: UserWithServiceAndSubscription;
 }
 
 export interface TimeSlot {
   time: string;
-  available: boolean; 
+  available: boolean;
+}
+
+type BlockedTimeItem = string | { time?: string | null };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function extractBlockedTimeItems(value: unknown): BlockedTimeItem[] {
+  if (Array.isArray(value)) {
+    return value as BlockedTimeItem[];
+  }
+
+  if (isRecord(value) && Array.isArray(value.blockedTimes)) {
+    return value.blockedTimes as BlockedTimeItem[];
+  }
+
+  if (isRecord(value) && Array.isArray(value.data)) {
+    return value.data as BlockedTimeItem[];
+  }
+
+  return [];
 }
 
 export function ScheduleContent({ clinic }: ScheduleContentProps) {
@@ -47,104 +81,96 @@ export function ScheduleContent({ clinic }: ScheduleContentProps) {
 
   const normalizeTime = (t: string) => (t ?? "").trim().slice(0, 5);
 
-const fetchBlockedTimes = useCallback(
-  async (date: Date): Promise<string[]> => {
-    setLoadingSlots(true);
+  const fetchBlockedTimes = useCallback(
+    async (date: Date): Promise<string[]> => {
+      setLoadingSlots(true);
 
-    try {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          const dateString = `${year}-${month}-${day}`;
+      try {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const dateString = `${year}-${month}-${day}`;
 
-          // ✅ use rota relativa (evita NEXT_PUBLIC_URL undefined)
-          const response = await fetch(
-            `/api/schedule/get-appointments?userId=${clinic.id}&date=${dateString}`
-          );
+        const response = await fetch(
+          `/api/schedule/get-appointments?userId=${clinic.id}&date=${dateString}`
+        );
 
-          if (!response.ok) {
-            return [];
-          }
-
-          const json = await response.json();
-
-          // ✅ aceita vários formatos e normaliza tudo pra "HH:MM"
-          const raw =
-            Array.isArray(json) ? json :
-            Array.isArray(json?.blockedTimes) ? json.blockedTimes :
-            Array.isArray(json?.data) ? json.data :
-            [];
-
-          const blocked = raw
-            .map((item: any) => (typeof item === "string" ? item : item?.time))
-            .filter(Boolean)
-            .map(normalizeTime);
-
-          // DEBUG (tira depois):
-
-          return blocked;
-        } catch (err) {
+        if (!response.ok) {
           return [];
-        } finally {
-          setLoadingSlots(false);
         }
-      },
-      [clinic.id]
-    );
 
+        const json: unknown = await response.json();
+        const raw = extractBlockedTimeItems(json);
+
+        const blocked = raw
+          .map((item) => (typeof item === "string" ? item : item.time ?? ""))
+          .filter(Boolean)
+          .map(normalizeTime);
+
+        return blocked;
+      } catch {
+        return [];
+      } finally {
+        setLoadingSlots(false);
+      }
+    },
+    [clinic.id]
+  );
 
   useEffect(() => {
-  if (selectedDate) {
-    const dateObj = selectedDate instanceof Date ? selectedDate : new Date(selectedDate as any);
+    if (selectedDate) {
+      const dateObj =
+        selectedDate instanceof Date
+          ? selectedDate
+          : new Date(String(selectedDate));
 
-    fetchBlockedTimes(dateObj).then((blocked) => {
-      const blockedNormalized = blocked.map((t) => t.trim().slice(0, 5));
-      setBlockedTimes(blockedNormalized);
+      fetchBlockedTimes(dateObj).then((blocked) => {
+        const blockedNormalized = blocked.map((t) => t.trim().slice(0, 5));
+        setBlockedTimes(blockedNormalized);
 
-      const times = (clinic.times || []).map((t) => t.trim().slice(0, 5));
+        const times = (clinic.times || []).map((t) => t.trim().slice(0, 5));
 
-      const finalSlots: TimeSlot[] = times.map((time) => ({
-        time,
-        available: !blockedNormalized.includes(time),
-      }));
+        const finalSlots: TimeSlot[] = times.map((time) => ({
+          time,
+          available: !blockedNormalized.includes(time),
+        }));
 
-      setAvaliableTimeSlots(finalSlots);
+        setAvaliableTimeSlots(finalSlots);
 
-      const stillAvailable = finalSlots.find(
-        (slot) => slot.time === selectedTime && slot.available
-      );
+        const stillAvailable = finalSlots.find(
+          (slot) => slot.time === selectedTime && slot.available
+        );
 
-      if (!stillAvailable) {
-        setSelectedTime("");
-      }
-    });
-  }
-}, [selectedDate, clinic.times, fetchBlockedTimes, selectedTime]);
-
+        if (!stillAvailable) {
+          setSelectedTime("");
+        }
+      });
+    }
+  }, [selectedDate, clinic.times, fetchBlockedTimes, selectedTime]);
 
   async function handleRegisterAppointmnent(formData: AppointmentFormData) {
     if (!selectedTime) {
-        return;
+      return;
     }
+
     const response = await createNewAppointment({
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email,
-        time: selectedTime,
-        date: formData.date,
-        serviceId: formData.serviceId,
-        clinicId: clinic.id
-    })
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      time: selectedTime,
+      date: formData.date,
+      serviceId: formData.serviceId,
+      clinicId: clinic.id,
+    });
 
-    if(response.error){
-        toast.error(response.error)
-        return;
+    if (response.error) {
+      toast.error(response.error);
+      return;
     }
 
-    toast.success("Consulta agendada com sucesso!")
+    toast.success("Consulta agendada com sucesso!");
     form.reset();
-    setSelectedTime("")
-
+    setSelectedTime("");
   }
 
   return (
@@ -167,7 +193,10 @@ const fetchBlockedTimes = useCallback(
 
             <div className="flex items-center gap-2 text-gray-700">
               <MapPin className="w-5 h-5" />
-              <span> {clinic.address ? clinic.address : "Endereço não informado"} </span>
+              <span>
+                {" "}
+                {clinic.address ? clinic.address : "Endereço não informado"}{" "}
+              </span>
             </div>
           </article>
         </div>
@@ -184,9 +213,15 @@ const fetchBlockedTimes = useCallback(
               name="name"
               render={({ field }) => (
                 <FormItem className="my-2">
-                  <FormLabel className="font-semibold">Nome Completo:</FormLabel>
+                  <FormLabel className="font-semibold">
+                    Nome Completo:
+                  </FormLabel>
                   <FormControl>
-                    <Input id="name" placeholder="Digite seu nome completo..." {...field} />
+                    <Input
+                      id="name"
+                      placeholder="Digite seu nome completo..."
+                      {...field}
+                    />
                   </FormControl>
                 </FormItem>
               )}
@@ -199,7 +234,11 @@ const fetchBlockedTimes = useCallback(
                 <FormItem className="my-2">
                   <FormLabel className="font-semibold">Email:</FormLabel>
                   <FormControl>
-                    <Input id="name" placeholder="Digite seu email..." {...field} />
+                    <Input
+                      id="name"
+                      placeholder="Digite seu email..."
+                      {...field}
+                    />
                   </FormControl>
                 </FormItem>
               )}
@@ -231,7 +270,9 @@ const fetchBlockedTimes = useCallback(
               name="date"
               render={({ field }) => (
                 <FormItem className="flex items-center gap-2 space-y-1">
-                  <FormLabel className="font-semibold">Data do agendamento:</FormLabel>
+                  <FormLabel className="font-semibold">
+                    Data do agendamento:
+                  </FormLabel>
                   <FormControl>
                     <DateTimePicker
                       initialDate={new Date()}
@@ -255,17 +296,21 @@ const fetchBlockedTimes = useCallback(
                 <FormItem className="">
                   <FormLabel className="font-semibold">Serviço:</FormLabel>
                   <FormControl>
-                    <Select onValueChange={(value) => {
-                      field.onChange(value)
-                      setSelectedTime("")
-                    }}>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setSelectedTime("");
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecionar um serviço" />
                       </SelectTrigger>
                       <SelectContent>
                         {clinic.services.map((service) => (
                           <SelectItem key={service.id} value={service.id}>
-                            {service.name} - {Math.floor(service.duration / 60)}h {service.duration % 60}min
+                            {service.name} -{" "}
+                            {Math.floor(service.duration / 60)}h{" "}
+                            {service.duration % 60}min
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -284,17 +329,24 @@ const fetchBlockedTimes = useCallback(
                   ) : availableTimeSlots.length === 0 ? (
                     <p>Nenhum horário disponivel</p>
                   ) : (
-                    <ScheduleTimeList 
-                        clinicTimes={clinic.times}
-                        blockedTimes={blockedTimes}
-                        availableTimeSlots={availableTimeSlots}
-                        selectedDate={selectedDate}
-                        selectedTime={selectedTime}
-                        onSelectTime={ (time) => setSelectedTime(time)}
-                        requiredSlots={
-                            clinic.services.find(service => service.id ===selectedServiceId) ? Math.ceil(clinic.services.find(service =>
-                                service.id === selectedServiceId)!.duration / 30) : 1
-                        }
+                    <ScheduleTimeList
+                      clinicTimes={clinic.times}
+                      blockedTimes={blockedTimes}
+                      availableTimeSlots={availableTimeSlots}
+                      selectedDate={selectedDate}
+                      selectedTime={selectedTime}
+                      onSelectTime={(time) => setSelectedTime(time)}
+                      requiredSlots={
+                        clinic.services.find(
+                          (service) => service.id === selectedServiceId
+                        )
+                          ? Math.ceil(
+                              clinic.services.find(
+                                (service) => service.id === selectedServiceId
+                              )!.duration / 30
+                            )
+                          : 1
+                      }
                     />
                   )}
                 </div>
@@ -305,7 +357,12 @@ const fetchBlockedTimes = useCallback(
               <Button
                 type="submit"
                 className="w-full bg-emerald-500 hover:bg-emerald-400"
-                disabled={!watch("name") || !watch("email") || !watch("phone") || !watch("date")}
+                disabled={
+                  !watch("name") ||
+                  !watch("email") ||
+                  !watch("phone") ||
+                  !watch("date")
+                }
               >
                 Realizar agendamento
               </Button>

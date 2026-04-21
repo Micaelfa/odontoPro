@@ -5,8 +5,15 @@ interface ServicesContentProps {
     userId: string;
 }
 
-export async function ServicesContent({userId}: ServicesContentProps) {
+const delay = (ms:number): Promise<void> => {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+};
 
+export async function ServicesContent({userId}: ServicesContentProps) {
+    
+    await delay(5000);
     const services = await getAllServices({userId: userId})
 
     return (

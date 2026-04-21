@@ -23,8 +23,8 @@ export const GET = auth(async function GET(request) {
     try{
         const [year, month, day] = dateString.split("-").map(Number)
 
-        const startDate = new Date(year, month -1, day, 0, 0, 0, 0)
-        const endtDate = new Date(year, month -1, day, 23, 59, 59, 999)
+        const startDate = new Date(Date.UTC(year, month -1, day, 0, 0, 0, 0))
+        const endtDate = new Date(Date.UTC(year, month -1, day, 23, 59, 59, 999))
 
         const appointments = await prisma.appointment.findMany({
             where:{
@@ -41,7 +41,7 @@ export const GET = auth(async function GET(request) {
         
         return NextResponse.json(appointments)
 
-    }catch(err){
+    }catch {
         return NextResponse.json({ error: "Falha ao buscar agendamentos"})
     }
 

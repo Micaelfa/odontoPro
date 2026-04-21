@@ -1,22 +1,23 @@
 "use server"
 
 import { signIn } from "@/src/lib/auth"
-
-type OAuthProvider = "google" | "github"
+import { hasValidOAuthConfig, type OAuthProvider } from "@/src/lib/oauth-config"
 
 function isOAuthProvider(value: FormDataEntryValue | null): value is OAuthProvider {
     return value === "google" || value === "github"
 }
 
 export async function handleRegister(provider: OAuthProvider) {
-    await signIn(provider, { redirectTo: "/dashboard" })
+    if (!hasValidOAuthConfig(provider)) return
 
+    await signIn(provider, { redirectTo: "/dashboard" })
 }
 
 export async function handleProviderLogin(formData: FormData) {
     const provider = formData.get("provider")
 
     if (!isOAuthProvider(provider)) return
+    if (!hasValidOAuthConfig(provider)) return
 
     await signIn(provider, { redirectTo: "/dashboard" })
 }

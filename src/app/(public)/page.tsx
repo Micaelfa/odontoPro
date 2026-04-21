@@ -2,8 +2,14 @@ import { Footer } from "./_components/footer";
 import { Header } from "./_components/header";
 import { Hero } from "./_components/hero";
 import { Profetionals } from "./_components/profetionals";
+import { getProfessionals } from "./_data-access/get-professionals";
 
-export default function Home() {
+export const revalidate = 120;
+
+export default async function Home() {
+
+  const professionals = await getProfessionals();
+
   return(
     <div>
       <Header />
@@ -11,12 +17,10 @@ export default function Home() {
       <div>
         <Hero/>
         
-        <Profetionals />
+        <Profetionals professionals={ professionals || [] }/>
 
         <Footer />
       </div>
-
-      
     </div>
   )
 }

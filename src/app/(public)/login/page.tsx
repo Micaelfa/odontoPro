@@ -3,8 +3,12 @@ import { Button } from "@/src/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { handleCredentialsLogin, handleProviderLogin } from "../_actions/login";
 import { Chrome, Github, KeyRound, LogIn, Mail } from "lucide-react";
+import { hasValidOAuthConfig } from "@/src/lib/oauth-config";
 
 export default function LoginPage() {
+    const githubEnabled = hasValidOAuthConfig("github")
+    const googleEnabled = hasValidOAuthConfig("google")
+
     return (
         <div className="min-h-screen bg-gray-50">
             <Header />
@@ -18,12 +22,19 @@ export default function LoginPage() {
                         </CardHeader>
 
                         <CardContent className="space-y-6">
+                            {!githubEnabled && (
+                                <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                    Login com GitHub indisponível no momento. Configure AUTH_GITHUB_ID e AUTH_GITHUB_SECRET no .env.local e reinicie o servidor.
+                                </div>
+                            )}
+
                             <div className="grid gap-3">
                                 <form action={handleProviderLogin}>
                                     <input type="hidden" name="provider" value="google" />
                                     <Button
                                         type="submit"
-                                        className="w-full bg-white text-gray-800 border hover:bg-gray-100 cursor-pointer"
+                                        disabled={!googleEnabled}
+                                        className="w-full bg-white text-gray-800 border hover:bg-gray-100 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         <Chrome className="h-5 w-5 mr-2" />
                                         Entrar com Google
@@ -34,7 +45,8 @@ export default function LoginPage() {
                                     <input type="hidden" name="provider" value="github" />
                                     <Button
                                         type="submit"
-                                        className="w-full bg-zinc-900 text-white hover:bg-zinc-800 cursor-pointer"
+                                        disabled={!githubEnabled}
+                                        className="w-full bg-zinc-900 text-white hover:bg-zinc-800 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         <Github className="h-5 w-5 mr-2" />
                                         Entrar com Github

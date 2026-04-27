@@ -4,7 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Account {
@@ -112,8 +114,12 @@ model User {
   timezone           String?
   times              String[]  @default([])
   stripe_customer_id String?
+  passwordHash       String?   @map("password_hash") @db.Text
 
-  subscription Subscription? //relacionamento onde 1 user pode ter 1 assinatura
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  subscription Subscription?
   services     Service[]
   reminders    Reminder[]
   appointments Appointment[]

@@ -21,14 +21,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/src/components/ui/alert-dialog"
+import { ResultPermissionProp } from "@/src/utils/permissions/canPermission"
+import Link from "next/link"
 
 interface ServicesListProps {
-  services: Service[]
+  services: Service[];
+  permissions: ResultPermissionProp
 }
 
-export function ServicesList({ services }: ServicesListProps) {
+export function ServicesList({ services, permissions }: ServicesListProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingService, setEditingService] = useState<null | Service>(null)
+
+  const servicesList = permissions.hasPermission ? services : services.slice(0, 3);
 
   async function handleDeleteService(serviceId: string) {
     const response = await deleteService({ serviceId })
@@ -53,11 +58,19 @@ export function ServicesList({ services }: ServicesListProps) {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xl md-text-2xl font-bold">Serviços</CardTitle>
 
-            <DialogTrigger asChild>
-              <Button className="cursor-pointer">
-                <Plus className="w-4 h-4 " />
-              </Button>
-            </DialogTrigger>
+            {permissions.hasPermission && (
+                <DialogTrigger asChild>
+                  <Button className="cursor-pointer">
+                    <Plus className="w-4 h-4 " />
+                  </Button>
+              </DialogTrigger>
+            )}
+
+            {!permissions.hasPermission && (
+              <Link href="/dashboard/plans" className="text-red-500">
+               Limite de serviços atingidos
+              </Link>
+            )}
 
             <DialogContent 
               onInteractOutside={(e) => {
@@ -85,7 +98,7 @@ export function ServicesList({ services }: ServicesListProps) {
 
           <CardContent>
             <section className="space-y-4 mt-5">
-              {services.map((service) => (
+              {servicesList.map((service) => (
                 <article
                   className="flex items-center justify-between "
                   key={service.id}
@@ -123,7 +136,7 @@ export function ServicesList({ services }: ServicesListProps) {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Excluir serviço</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Tem certeza que deseja excluir o serviço "{service.name}"? 
+                            Tem certeza que deseja excluir o serviço {service.name}? 
                             Essa ação não poderá ser desfeita.
                           </AlertDialogDescription>
                         </AlertDialogHeader>

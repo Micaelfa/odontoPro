@@ -3,7 +3,8 @@ import prisma from "./prisma"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import GitHub from "next-auth/providers/github"
 import Google from "next-auth/providers/google"
- 
+import Credentials from "next-auth/providers/credentials"
+import { compare } from "bcryptjs"
 
 const PLACEHOLDER_PATTERNS = [/^seu_/i, /^your_/i, /^insira/i, /^change[-_]?me/i]
 
@@ -46,15 +47,100 @@ if (googleId && googleSecret) {
         Google({
             clientId: googleId,
             clientSecret: googleSecret,
+            allowDangerousEmailAccountLinking: true,
+
         })
     )
 }
 
+providers.push(
+    Credentials({
+        name: "credentials",
+        credentials: {
+            email: {
+                label: "Email",
+                type: "email",
+            },
+            password: {
+                label: "Senha",
+                type: "password",
+            },
+        },
+        async authorize(credentials) {
+            const email = credentials?.email
+            const password = credentials?.password
+
+            if (typeof email !== "string" || typeof password !== "string") {
+                return null
+            }
+
+            const user = await prisma.user.findUnique({
+                where: {
+                    email: email.trim().toLowerCase(),
+                },
+            })
+
+            if (!user || !user.passwordHash) {
+                return null
+            }
+
+            const isPasswordValid = await compare(password, user.passwordHash)
+
+            if (!isPasswordValid) {
+                return null
+            }
+
+            return {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                image: user.image,
+                createdAt: user.createdAt,
+            }
+        },
+    })
+)
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
     adapter: PrismaAdapter(prisma),
     trustHost: true,
+
+    session: {
+        strategy: "jwt",
+    },
+
     providers,
+
     pages: {
         signIn: "/login",
+    },
+
+    callbacks: {
+        async jwt({ token, user }) {
+            if (user) {
+                token.id = user.id
+
+                if ("createdAt" in user && user.createdAt) {
+                    token.createdAt =
+                        user.createdAt instanceof Date
+                            ? user.createdAt.toISOString()
+                            : String(user.createdAt)
+                }
+            }
+
+            return token
+        },
+
+        async session({ session, token }) {
+            if (session.user) {
+                session.user.id = token.id as string
+
+                if (token.createdAt) {
+                    session.user.createdAt = new Date(token.createdAt as string)
+                }
+            }
+
+            return session
+        },
     },
 })

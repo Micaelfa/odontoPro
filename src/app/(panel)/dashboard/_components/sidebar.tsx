@@ -4,10 +4,9 @@ import { useState } from "react"
 import { usePathname } from "next/navigation"
 import clsx from "clsx"
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/src/components/ui/sheet";
-import { Banknote, CalendarCheck2, ChevronLeft, ChevronRight, Folder, List, Settings } from "lucide-react";
+import { Banknote, CalendarCheck2, ChartNoAxesCombined, ChevronLeft, ChevronRight, Folder, List, Settings } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import Link from "next/link";
-import { Footer } from "@/src/app/(public)/_components/footer";
 import Image from "next/image";
 import LogoImg from "../../../../../public/logo-odonto.png"
 import { Collapsible, CollapsibleContent } from "@/src/components/ui/collapsible";
@@ -108,6 +107,14 @@ export default function SideBar({children} : {children: React.ReactNode}) {
                                     pathname={pathname}
                                     isCollapsed={isCollapsed}
                                     icon = {<Folder className="w-6 h-6" />}
+                                />
+
+                                <SidebarLink 
+                                    href="/dashboard/analytics"
+                                    label="Analytics"
+                                    pathname={pathname}
+                                    isCollapsed={isCollapsed}
+                                    icon = {<ChartNoAxesCombined  className="w-6 h-6" />}
                                 />
 
                                 <span className="text-sm text-gray-400 font-medium mt-5 uppercase">

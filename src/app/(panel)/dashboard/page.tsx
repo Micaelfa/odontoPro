@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { ButtonCopyLink } from "./_components/button-copy-link";
 import { Reminders } from "./_components/reminder/reminders";
 import { Appointments } from "./_components/appointments/appointments";
+import { checkSubscription } from "@/src/utils/permissions/checkSubscription";
+import { LabelSubscription } from "@/src/components/ui/label-subscription";
 
 export default async function Dashboard() {
   const session = await getSession();
@@ -13,6 +15,8 @@ export default async function Dashboard() {
   if (!session?.user?.id) {
     redirect("/");
   }
+
+  const subscription = await checkSubscription(session?.user?.id)
 
   const userId = session.user.id;
 
@@ -29,10 +33,23 @@ export default async function Dashboard() {
         <ButtonCopyLink userId={userId} />
       </div>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
-        <Appointments userId={userId} />
-        <Reminders userId={userId} />
-      </section>
+      {subscription?.subscriptionStatus === "EXPIRED" && (
+        <LabelSubscription expired={true} />
+      )}
+
+      {subscription?.subscriptionStatus === "TRIAL" && (
+        <div className="bg-green-500 text-white text-sm md:text-base px-3 py-2 rounded-md my-2 ">
+          <p className="font-semibold">{subscription?.message}</p>
+        </div>
+      )}
+
+      {subscription?.subscriptionStatus !== "EXPIRED" && (
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
+            <Appointments userId={userId} />
+            <Reminders userId={userId} />
+        </section>
+      )}
+
     </main>
   );
 }

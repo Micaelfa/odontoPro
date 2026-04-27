@@ -1,0 +1,58 @@
+"use server"
+
+import auth from "@/src/lib/getSession";
+import prisma from "@/src/lib/prisma";
+import { stripe } from "@/src/utils/stripe";
+
+export async function createPortalCustomer() {
+    const session = await auth();
+
+    if(!session?.user?.id){
+
+        return{
+            sessionId: "",
+            error: "Usuário não encontrado"
+        }
+    }
+
+    const user = await prisma.user.findFirst({
+        where:{
+
+            id: session?.user?.id
+        }
+    })
+
+    if(!user){
+        return {
+            sessionId: "",
+            error: "Usuário não encontrado"
+        }
+    }
+
+    const sessionId = user.stripe_customer_id;
+
+    if(!sessionId){
+
+        return {
+            sessionId: "",
+            error:"Usuário não encontrado"
+        }
+    }
+
+    try{
+        const portalSession = await stripe.billingPortal.sessions.create({
+                customer: sessionId,
+                return_url: process.env.STRIPE_SUCCESS_URL as string
+            })
+
+            return {
+                sessionId: portalSession.url
+        }
+
+    }catch{
+        return {
+            sessionId: "",
+            error:"Usuário não encontrado"
+        }
+    }
+}

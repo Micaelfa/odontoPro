@@ -1,7 +1,7 @@
 import { Footer } from "./_components/footer";
 import { Header } from "./_components/header";
 import { Hero } from "./_components/hero";
-import { Profetionals } from "./_components/profetionals";
+import { Professinals } from "./_components/profetionals";
 import { getProfessionals } from "./_data-access/get-professionals";
 
 export const revalidate = 120;
@@ -17,7 +17,7 @@ export default async function Home() {
       <div>
         <Hero/>
         
-        <Profetionals professionals={ professionals || [] }/>
+        <Professinals professionals={ professionals || [] }/>
 
         <Footer />
       </div>

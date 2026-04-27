@@ -19,104 +19,146 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/components/ui/select";
-import Image from "next/image";
-import ImgTeste from "@/public/foto1.png";
 import { Label } from "@radix-ui/react-label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/src/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/src/components/ui/dialog";
 import { Button } from "@/src/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, KeyRound } from "lucide-react";
 import { useState } from "react";
-import { cn } from '@/src/lib/utils';
-import {ProfileFormData} from "@/src/app/(panel)/dashboard/profile/_components/profile.form"
+import { cn } from "@/src/lib/utils";
+import { ProfileFormData } from "@/src/app/(panel)/dashboard/profile/_components/profile.form";
 import { Prisma } from "@/src/generated/prisma/client";
-import {updateProfile} from "../_actions/update-profile"
+import { updateProfile } from "../_actions/update-profile";
+import { updatePassword } from "../_actions/update-password";
 import { toast } from "sonner";
-import {formatPhone} from "@/src/utils/formatedPhone"
-import { signOut, useSession} from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { formatPhone } from "@/src/utils/formatedPhone";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { AvatarProfile } from "./profile-avatar";
 
 type UserWithSubscription = Prisma.UserGetPayload<{
   include: {
-    subscription: true
-  }
-}>
-interface ProfileContentProps{
-  user: UserWithSubscription
+    subscription: true;
+  };
+}>;
+
+interface ProfileContentProps {
+  user: UserWithSubscription;
 }
 
-export default function ProfileContent({user} : ProfileContentProps) {
-
+export default function ProfileContent({ user }: ProfileContentProps) {
   const router = useRouter();
-  const [selectedHours, setSelectedHours] = useState<string[]>(user.times ?? [])
-  const [dialogIsOpen, setDialogIsOpen] = useState(false)
-  const {update} = useSession()
+  const [selectedHours, setSelectedHours] = useState<string[]>(user.times ?? []);
+  const [dialogIsOpen, setDialogIsOpen] = useState(false);
+  const { update } = useSession();
+
+  const [passwordDialogIsOpen, setPasswordDialogIsOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const form = useProfileForm({
     name: user.name,
     address: user.address,
     phone: user.phone,
     status: user.status,
-    timeZone: user.timezone
+    timeZone: user.timezone,
   });
 
-  const timeZones = Intl.supportedValuesOf("timeZone").filter((zone) => 
-    zone.startsWith("America/Sao_Paulo") ||
-    zone.startsWith("America/Fortaleza") ||
-    zone.startsWith("America/Recife") ||
-    zone.startsWith("America/Bahia") ||
-    zone.startsWith("America/Belem") ||
-    zone.startsWith("America/Manaus") ||
-    zone.startsWith("America/Cuiaba") ||
-    zone.startsWith("America/Boa_Vista")
-
+  const timeZones = Intl.supportedValuesOf("timeZone").filter(
+    (zone) =>
+      zone.startsWith("America/Sao_Paulo") ||
+      zone.startsWith("America/Fortaleza") ||
+      zone.startsWith("America/Recife") ||
+      zone.startsWith("America/Bahia") ||
+      zone.startsWith("America/Belem") ||
+      zone.startsWith("America/Manaus") ||
+      zone.startsWith("America/Cuiaba") ||
+      zone.startsWith("America/Boa_Vista")
   );
 
   function generateTimeSlots(): string[] {
     const hours: string[] = [];
-    for (let i = 8; i<=24; i++) {
-      for (let j =0; j < 2; j++) {
-        const hour = i.toString().padStart(2, "0") 
-        const minute = (j * 30).toString().padStart(2, "0")
-        hours.push(`${hour}:${minute}`)
+
+    for (let i = 8; i <= 24; i++) {
+      for (let j = 0; j < 2; j++) {
+        const hour = i.toString().padStart(2, "0");
+        const minute = (j * 30).toString().padStart(2, "0");
+
+        hours.push(`${hour}:${minute}`);
       }
-      
     }
+
     return hours;
   }
 
   const hours = generateTimeSlots();
 
   function toggleHour(hour: string) {
-    setSelectedHours((prev) => prev.includes(hour) ? prev.filter(h => h !== hour) : [...prev, hour].sort())
+    setSelectedHours((prev) =>
+      prev.includes(hour)
+        ? prev.filter((h) => h !== hour)
+        : [...prev, hour].sort()
+    );
   }
 
   async function onSubit(values: ProfileFormData) {
-    
     const response = await updateProfile({
       name: values.name,
       address: values.address,
       phone: values.phone,
       status: values.status === "active" ? true : false,
-      timeZone:values.timeZone,
-      times: selectedHours || []
-    })
+      timeZone: values.timeZone,
+      times: selectedHours || [],
+    });
 
     if (response.error) {
-      toast.error(response.error)
+      toast.error(response.error);
       return;
     }
-    
-      toast.success(response.data)
+
+    toast.success(response.data);
   }
 
-  async function handleLogout(){
+  async function handleUpdatePassword() {
+    setIsUpdatingPassword(true);
+
+    const response = await updatePassword({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+
+    setIsUpdatingPassword(false);
+
+    if (response.error) {
+      toast.error(response.error);
+      return;
+    }
+
+    toast.success(response.data);
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordDialogIsOpen(false);
+  }
+
+  async function handleLogout() {
     await signOut();
     await update();
-    router.replace("/")
+    router.replace("/");
   }
 
   return (
-  <div className="w-full flex justify-center px-4 py-6 ">
+    <div className="w-full flex justify-center px-4 py-6">
       <div className="w-full max-w-md sm:max-w-xl lg:max-w-3xl">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubit)}>
@@ -128,19 +170,13 @@ export default function ProfileContent({user} : ProfileContentProps) {
               </CardHeader>
 
               <CardContent className="space-y-6">
-                {/* foto */}
                 <div className="flex justify-center">
-                  <div className="relative h-40 w-40 rounded-full overflow-hidden">
-                    <Image
-                      src={user.image ? user.image : ImgTeste}
-                      alt="Foto da clínica"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+                  <AvatarProfile 
+                    avatarUrl={user.image}
+                    userId={user.id}
+                  />
                 </div>
 
-                {/* campos */}
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -174,7 +210,7 @@ export default function ProfileContent({user} : ProfileContentProps) {
                             placeholder="Digite o endereço da clínica..."
                           />
                         </FormControl>
-                        <FormMessage/>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -192,12 +228,12 @@ export default function ProfileContent({user} : ProfileContentProps) {
                             {...field}
                             placeholder="Digite o telefone da clínica..."
                             onChange={(e) => {
-                              const formattedValue = formatPhone(e.target.value)
-                              field.onChange(formattedValue)
+                              const formattedValue = formatPhone(e.target.value);
+                              field.onChange(formattedValue);
                             }}
                           />
                         </FormControl>
-                        <FormMessage/>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -228,26 +264,34 @@ export default function ProfileContent({user} : ProfileContentProps) {
                             </SelectContent>
                           </Select>
                         </FormControl>
-                        <FormMessage/>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
 
                   <div className="space-y-2">
-                    <Label className="font-semibold">Configurar horarios da clinica</Label>
+                    <Label className="font-semibold">
+                      Configurar horarios da clinica
+                    </Label>
 
                     <Dialog open={dialogIsOpen} onOpenChange={setDialogIsOpen}>
                       <DialogTrigger asChild>
-                        <Button className="w-full justify-between mt-3" variant="outline">
+                        <Button
+                          type="button"
+                          className="w-full justify-between mt-3"
+                          variant="outline"
+                        >
                           Clique aqui para configurar os horarios da clinica
-                          <ArrowRight className="w-5 h-5"/>
+                          <ArrowRight className="w-5 h-5" />
                         </Button>
                       </DialogTrigger>
 
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle> Horarios da clinica</DialogTitle>
-                          <DialogDescription>Selecione os horarios que a clinica estará aberta</DialogDescription>
+                          <DialogTitle>Horarios da clinica</DialogTitle>
+                          <DialogDescription>
+                            Selecione os horarios que a clinica estará aberta
+                          </DialogDescription>
                         </DialogHeader>
 
                         <section className="py-4">
@@ -257,9 +301,14 @@ export default function ProfileContent({user} : ProfileContentProps) {
 
                           <div className="grid grid-cols-5 gap-2">
                             {hours.map((hour) => (
-                              <Button 
-                                className={cn("h-10", selectedHours.includes(hour) && "border-2 border-emerald-500 text-primary")} 
-                                variant="outline" 
+                              <Button
+                                type="button"
+                                className={cn(
+                                  "h-10",
+                                  selectedHours.includes(hour) &&
+                                    "border-2 border-emerald-500 text-primary"
+                                )}
+                                variant="outline"
                                 key={hour}
                                 onClick={() => toggleHour(hour)}
                               >
@@ -269,11 +318,12 @@ export default function ProfileContent({user} : ProfileContentProps) {
                           </div>
                         </section>
 
-                        <Button 
-                          className="w-full" 
-                          onClick={() => setDialogIsOpen(false)} 
+                        <Button
+                          type="button"
+                          className="w-full"
+                          onClick={() => setDialogIsOpen(false)}
                         >
-                          Salvar horarios 
+                          Salvar horarios
                         </Button>
                       </DialogContent>
                     </Dialog>
@@ -298,36 +348,104 @@ export default function ProfileContent({user} : ProfileContentProps) {
                             <SelectContent>
                               {timeZones.map((zone) => (
                                 <SelectItem key={zone} value={zone}>
-                                    {zone}
+                                  {zone}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </FormControl>
-                        <FormMessage/>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400">
+                  <Button
+                    type="submit"
+                    className="w-full bg-emerald-500 hover:bg-emerald-400"
+                  >
                     Salvar alterações
                   </Button>
-
                 </div>
               </CardContent>
             </Card>
           </form>
         </Form>
 
-      <section className="mt-4">
-        <Button
-          variant="destructive"
-          onClick={handleLogout}
-          className="cursor-pointer"
-        >
-          Sair da conta
-        </Button>
-      </section>
+        <section className="mt-4 flex flex-col gap-3">
+          <Dialog
+            open={passwordDialogIsOpen}
+            onOpenChange={setPasswordDialogIsOpen}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline" className="cursor-pointer w-80">
+                <KeyRound className="w-4 h-4 mr-2" />
+                Alterar senha
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Alterar senha</DialogTitle>
+                <DialogDescription>
+                  Atualize sua senha de acesso ao sistema.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold">Senha atual</Label>
+                  <Input
+                    type="password"
+                    placeholder="Digite sua senha atual"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Se sua conta foi criada por Google ou GitHub, este campo
+                    pode ficar vazio no primeiro cadastro de senha.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold">Nova senha</Label>
+                  <Input
+                    type="password"
+                    placeholder="Digite a nova senha"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold">Confirmar nova senha</Label>
+                  <Input
+                    type="password"
+                    placeholder="Confirme a nova senha"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 "
+                  disabled={isUpdatingPassword}
+                  onClick={handleUpdatePassword}
+                >
+                  {isUpdatingPassword ? "Salvando..." : "Salvar nova senha"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button
+            variant="destructive"
+            onClick={handleLogout}
+            className="cursor-pointer w-80"
+          >
+            Sair da conta
+          </Button>
+        </section>
       </div>
     </div>
   );

@@ -192,6 +192,14 @@ export default function SideBar({children} : {children: React.ReactNode}) {
                                 />
 
                                 <SidebarLink 
+                                    href="/dashboard/analytics"
+                                    label="Analytics"
+                                    pathname={pathname}
+                                    isCollapsed={isCollapsed}
+                                    icon = {<ChartNoAxesCombined  className="w-6 h-6" />}
+                                />
+
+                                <SidebarLink 
                                     href="/dashboard/profile"
                                     label="Meu perfil"
                                     pathname={pathname}
